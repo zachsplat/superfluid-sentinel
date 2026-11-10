@@ -62,7 +62,7 @@ class Liquidator {
         return checkFlow !== undefined && isCritical;
       } else if(pppmode === this.app.protocol.PPPMode.Pleb) {
         const isPatrician = await this.app.protocol.isPatricianPeriodNow(superToken, sender);
-        return checkFlow !== undefined && isCritical && !isPatrician.isPatricianPeriod;
+        return checkFlow !== undefined && isCritical && !isPatrician.isCurrentlyPatricianPeriod;
       } else {
         const isSolvent = await this.app.protocol.isAccountSolventNow(superToken, sender);
         return checkFlow !== undefined && isCritical && !isSolvent;

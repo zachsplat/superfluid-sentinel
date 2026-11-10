@@ -43,7 +43,8 @@ describe("Liquidator Tests", () => {
                 isAccountCriticalNow: sinon.stub().callsFake(async (token, account) => account === criticalSender),
                 // critical but still solvent: before the end of the liquidation period, so a pirate cannot close it yet
                 isAccountSolventNow: sinon.stub().resolves(true),
-                isPatricianPeriodNow: sinon.stub().resolves({ isPatricianPeriod: false }),
+                // CFAv1.isPatricianPeriodNow returns isCurrentlyPatricianPeriod, not isPatricianPeriod
+                isPatricianPeriodNow: sinon.stub().resolves({ isCurrentlyPatricianPeriod: false }),
                 generateDeleteCFAStreamTxData: sinon.stub().returns({ tx: "0xcfa", target: "0xbatch" }),
                 generateDeleteGDAStreamTxData: sinon.stub().returns({ tx: "0xgda", target: "0xhost" })
             },
@@ -83,6 +84,15 @@ describe("Liquidator Tests", () => {
         expect(liquidator.sendWithRetry.calledOnce).to.be.true;
         expect(mockApp.protocol.generateDeleteCFAStreamTxData.calledOnceWith(superToken, criticalSender, receiver)).to.be.true;
         expect(mockApp.protocol.isAccountSolventNow.called).to.be.false;
+        expect(mockApp.protocol.isPatricianPeriodNow.called).to.be.true;
+    });
+
+    it("#1.2b - pleb: a single closable stream is not sent during the patrician period", async () => {
+        mockApp.protocol.isPatricianPeriodNow.resolves({ isCurrentlyPatricianPeriod: true });
+        mockApp.db.bizQueries.getLiquidations.resolves(flows(1));
+        await liquidator.start();
+        expect(liquidator.sendWithRetry.called).to.be.false;
+        expect(liquidator.sendBatch.called).to.be.false;
     });
 
     it("#1.3 - pirate: a solvent account should not be sent", async () => {
